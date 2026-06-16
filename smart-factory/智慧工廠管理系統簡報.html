@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧工廠管理系統 - 專案介紹</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===========================================
+           FIXED 16:9 STAGE: MANDATORY BASE STYLES
+           =========================================== */
+        
+        /* 1. Lock the browser viewport */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+        
+        /* 2. Full-window deck viewport */
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+        
+        /* 3. Fixed 16:9 design canvas */
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--slide-bg, #fff);
+        }
+        
+        /* 4. Slides stack inside the fixed stage */
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--slide-bg, #fff);
+        }
+        
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+        
+        /* 5. Keep media inside authored slide bounds */
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        /* 6. Presentation chrome */
+        .deck-controls {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 24px;
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .deck-controls button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .deck-controls button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 7. Print support */
+        @media print {
+            html, body {
+                width: 1920px;
+                height: auto;
+                overflow: visible;
+                background: #fff;
+            }
+            .deck-viewport {
+                position: static;
+                overflow: visible;
+                background: #fff;
+            }
+            .deck-stage {
+                position: static;
+                width: auto;
+                height: auto;
+                transform: none !important;
+                background: none;
+            }
+            .slide {
+                position: relative;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                width: 1920px;
+                height: 1080px;
+                break-after: page;
+                page-break-after: always;
+            }
+            .slide:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+            .deck-controls {
+                display: none !important;
+            }
+        }
+        
+        /* 8. Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+        
+        /* ===========================================
+           CUSTOM PRESENTATION STYLES
+           =========================================== */
+        
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            --accent-blue: #1890ff;
+            --accent-green: #52c41a;
+            --accent-orange: #ff7a45;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --card-bg: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Typography */
+        body {
+            font-family: 'Noto Sans TC', 'Space Grotesk', sans-serif;
+            color: var(--text-primary);
+        }
+        
+        .slide {
+            background: var(--bg-gradient);
+            padding: 80px 120px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Slide number */
+        .slide-number {
+            position: absolute;
+            top: 60px;
+            left: 120px;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        /* Titles */
+        h1 {
+            font-size: 96px;
+            font-weight: 900;
+            margin: 0 0 40px 0;
+            line-height: 1.1;
+            color: var(--text-primary);
+        }
+        
+        h2 {
+            font-size: 72px;
+            font-weight: 700;
+            margin: 0 0 60px 0;
+            line-height: 1.2;
+            color: var(--text-primary);
+        }
+        
+        h3 {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 0 0 32px 0;
+            color: var(--accent-blue);
+        }
+        
+        /* Content */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .subtitle {
+            font-size: 42px;
+            color: var(--text-secondary);
+            margin-bottom: 80px;
+            font-weight: 400;
+        }
+        
+        /* Lists */
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        li {
+            font-size: 36px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            padding-left: 60px;
+            position: relative;
+            color: var(--text-secondary);
+        }
+        
+        li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-blue);
+            font-size: 42px;
+        }
+        
+        /* Feature cards */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+        }
+        
+        .feature-card {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-8px);
+        }
+        
+        .feature-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+        
+        .feature-title {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        
+        .feature-desc {
+            font-size: 28px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* Tech stack */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-top: 60px;
+        }
+        
+        .tech-item {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+        
+        .tech-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+        }
+        
+        .tech-version {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+        
+        /* Highlight box */
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            border-radius: 24px;
+            padding: 60px;
+            margin: 60px 0;
+        }
+        
+        .highlight h3 {
+            color: white;
+            margin-bottom: 32px;
+        }
+        
+        .highlight p {
+            font-size: 32px;
+            color: white;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* Code block */
+        .code-block {
+            background: #1a1a2e;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 48px;
+            font-family: 'Space Mono', monospace;
+            font-size: 28px;
+            color: #52c41a;
+            line-height: 1.8;
+            margin: 40px 0;
+        }
+        
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin: 60px 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+        }
+        
+        .stat-label {
+            font-size: 28px;
+            color: var(--text-secondary);
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .slide.active h1,
+        .slide.active h2 {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .slide.active .content > * {
+            animation: fadeInUp 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        .slide.active .content > *:nth-child(2) { animation-delay: 0.1s; }
+        .slide.active .content > *:nth-child(3) { animation-delay: 0.2s; }
+        .slide.active .content > *:nth-child(4) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <div class="deck-stage" id="stage">
+            
+            <!-- Slide 1: Cover -->
+            <div class="slide active">
+                <div class="content" style="justify-content: center; align-items: center; text-align: center;">
+                    <h1 style="font-size: 120px; margin-bottom: 60px;">智慧工廠管理系統</h1>
+                    <div class="subtitle" style="font-size: 52px;">Smart Factory Management System</div>
+                    <p style="font-size: 38px; color: var(--text-secondary); margin-top: 80px;">
+                        現代化製造業數位轉型解決方案
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Slide 2: Overview -->
+            <div class="slide">
+                <div class="slide-number">02</div>
+                <div class="content">
+                    <h2>專案概述</h2>
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">🎯</div>
+                            <div class="feature-title">系統簡介</div>
+                            <div class="feature-desc">
+                                基於 React + TypeScript 的現代化 Web 應用，提供完整的工廠生產管理與監控功能
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">即時監控</div>
+                            <div class="feature-desc">
+                                即時數據視覺化與分析，響應式設計支援多種裝置
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <div class="feature-title">提升效率</div>
+                            <div class="feature-desc">
+                                提升生產效率，降低管理成本，即時問題追蹤
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎯</div>
+                            <div class="feature-title">數據驅動</div>
+                            <div class="feature-desc">
+                                數據驅動決策，完整的追溯與分析能力
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 3: Tech Stack -->
+            <div class="slide">
+                <div class="slide-number">03</div>
+                <div class="content">
+                    <h2>技術架構</h2>
+                    <div class="tech-grid">
+                        <div class="tech-item">
+                            <div class="tech-name">React</div>
+                            <div class="tech-version">19.2.6</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-name">TypeScript</div>
+                            <div class="tech-version">6.0.2</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-name">Vite</div>
+                            <div class="tech-version">8.0.12</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-name">Ant Design</div>
+                            <div class="tech-version">6.4.4</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-name">ECharts</div>
+                            <div class="tech-version">6.1.0</div>
+                        </div>
+                        <div class="tech-item">
+                            <div class="tech-name">Zustand</div>
+                            <div class="tech-version">5.0.14</div>
+                        </div>
+                    </div>
+                    <div class="highlight" style="margin-top: 80px;">
+                        <h3>架構特點</h3>
+                        <p>單頁應用 (SPA) • 組件化開發 • 模組化設計 • 零依賴部署</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 4: Modules -->
+            <div class="slide">
+                <div class="slide-number">04</div>
+                <div class="content">
+                    <h2>六大核心模組</h2>
+                    <ul style="font-size: 42px;">
+                        <li>📊 <strong>儀表板</strong> - 即時監控與 KPI 分析</li>
+                        <li>🏭 <strong>生產管理</strong> - 工單追蹤與排程</li>
+                        <li>🔧 <strong>設備管理</strong> - 設備狀態與維護</li>
+                        <li>✅ <strong>品質管理</strong> - 品質追蹤與改善</li>
+                        <li>🔍 <strong>追溯管理</strong> - 批次履歷查詢</li>
+                        <li>⚠️ <strong>異常管理</strong> - 問題處理與改善</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 5: Dashboard -->
+            <div class="slide">
+                <div class="slide-number">05</div>
+                <div class="content">
+                    <h2>儀表板功能</h2>
+                    <h3>即時監控中心</h3>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value">6</div>
+                            <div class="stat-label">產線監控</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">30</div>
+                            <div class="stat-label">天趨勢</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">4</div>
+                            <div class="stat-label">KPI 指標</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">趨勢圖表</div>
+                        </div>
+                    </div>
+                    <ul style="margin-top: 60px;">
+                        <li>總產量統計、達成率監控、運轉產線數量</li>
+                        <li>產量趨勢、良率趨勢、OEE 綜合效率分析</li>
+                        <li>產線即時狀態總覽與視覺化</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 6: Production -->
+            <div class="slide">
+                <div class="slide-number">06</div>
+                <div class="content">
+                    <h2>生產管理功能</h2>
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">📋</div>
+                            <div class="feature-title">工單管理</div>
+                            <div class="feature-desc">
+                                20+ 筆工單資料，優先級標示，狀態追蹤，進度條視覺化
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">統計資訊</div>
+                            <div class="feature-desc">
+                                總工單數、各狀態統計、產線篩選功能
+                            </div>
+                        </div>
+                    </div>
+                    <ul style="margin-top: 60px;">
+                        <li>工單號、產品名稱、計畫/完成數量</li>
+                        <li>開始/結束時間、所屬產線</li>
+                        <li>優先級管理（高/中/低）</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 7: Equipment -->
+            <div class="slide">
+                <div class="slide-number">07</div>
+                <div class="content">
+                    <h2>設備管理功能</h2>
+                    <h3>設備監控與維護</h3>
+                    <ul>
+                        <li><strong>設備列表</strong> - 20+ 台設備即時監控，運轉時數統計</li>
+                        <li><strong>參數監控</strong> - 溫度、振動、轉速、電流即時顯示</li>
+                        <li><strong>設備告警</strong> - 即時告警通知，嚴重程度分級</li>
+                        <li><strong>OEE 分析</strong> - 可用率、表現率、品質率綜合分析</li>
+                        <li><strong>保養計畫</strong> - 定期保養排程，逾期提醒</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 8: Quality -->
+            <div class="slide">
+                <div class="slide-number">08</div>
+                <div class="content">
+                    <h2>品質管理功能</h2>
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <div class="feature-title">品質指標</div>
+                            <div class="feature-desc">
+                                良率統計、不良率分析、總不良數追蹤
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">Pareto 分析</div>
+                            <div class="feature-desc">
+                                不良類型分布、累積百分比曲線、視覺化圖表
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔍</div>
+                            <div class="feature-title">CAPA 管理</div>
+                            <div class="feature-desc">
+                                矯正與預防措施、案件狀態追蹤、根因分析
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">✅</div>
+                            <div class="feature-title">改善追蹤</div>
+                            <div class="feature-desc">
+                                改善行動追蹤、效果評估、持續改進
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 9: Traceability -->
+            <div class="slide">
+                <div class="slide-number">09</div>
+                <div class="content">
+                    <h2>追溯管理功能</h2>
+                    <h3>完整批次履歷</h3>
+                    <ul>
+                        <li><strong>批次查詢</strong> - 30+ 筆批次資料，快速搜尋功能</li>
+                        <li><strong>生產履歷</strong> - 生產流程時間軸，各站點作業記錄</li>
+                        <li><strong>原料追溯</strong> - 原料使用記錄，批次號追蹤</li>
+                        <li><strong>品質記錄</strong> - 檢驗時間與結果，不良類型記錄</li>
+                        <li><strong>操作員資訊</strong> - 作業時間統計，責任追蹤</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 10: Issues -->
+            <div class="slide">
+                <div class="slide-number">10</div>
+                <div class="content">
+                    <h2>異常管理功能</h2>
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">⚠️</div>
+                            <div class="feature-title">異常案件</div>
+                            <div class="feature-desc">
+                                25+ 筆案件，類型分類，SLA 監控，指派追蹤
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">異常統計</div>
+                            <div class="feature-desc">
+                                類型分布圓餅圖、狀態統計卡片、趨勢分析
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔄</div>
+                            <div class="feature-title">PDCA 循環</div>
+                            <div class="feature-desc">
+                                改善專案管理、進度追蹤、效果評估
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <div class="feature-title">改善對比</div>
+                            <div class="feature-desc">
+                                改善前後數據對比、成效量化分析
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 11: Features -->
+            <div class="slide">
+                <div class="slide-number">11</div>
+                <div class="content">
+                    <h2>系統特色</h2>
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <div class="feature-title">零依賴部署</div>
+                            <div class="feature-desc">單一 HTML 檔案即可運行</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">即時監控</div>
+                            <div class="feature-desc">實時數據更新與告警</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔍</div>
+                            <div class="feature-title">完整追溯</div>
+                            <div class="feature-desc">從原料到成品的完整記錄</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <div class="feature-title">數據分析</div>
+                            <div class="feature-desc">多維度圖表與統計</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📱</div>
+                            <div class="feature-title">響應式設計</div>
+                            <div class="feature-desc">支援各種裝置</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔧</div>
+                            <div class="feature-title">模組化架構</div>
+                            <div class="feature-desc">易於維護與擴展</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 12: Deployment -->
+            <div class="slide">
+                <div class="slide-number">12</div>
+                <div class="content">
+                    <h2>部署與啟動</h2>
+                    <h3>快速開始</h3>
+                    <div class="code-block">
+# 1. 進入專案目錄<br>
+cd smart-factory<br>
+<br>
+# 2. 安裝依賴<br>
+npm install<br>
+<br>
+# 3. 啟動開發伺服器<br>
+npm run dev<br>
+<br>
+# 4. 開啟瀏覽器<br>
+http://localhost:5174
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 13: Future -->
+            <div class="slide">
+                <div class="slide-number">13</div>
+                <div class="content">
+                    <h2>未來展望</h2>
+                    <ul style="font-size: 42px;">
+                        <li>🔌 <strong>後端整合</strong> - 連接實際資料庫與 API</li>
+                        <li>📱 <strong>行動應用</strong> - 開發原生 App</li>
+                        <li>🤖 <strong>AI 預測</strong> - 機器學習預測維護</li>
+                        <li>🌐 <strong>多語言支援</strong> - 國際化擴展</li>
+                        <li>📊 <strong>進階分析</strong> - 更多數據分析功能</li>
+                        <li>🔐 <strong>權限管理</strong> - 使用者角色與權限</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Slide 14: Summary -->
+            <div class="slide">
+                <div class="slide-number">14</div>
+                <div class="content">
+                    <h2>專案成果</h2>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value">6</div>
+                            <div class="stat-label">核心模組</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">20+</div>
+                            <div class="stat-label">組件</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">100%</div>
+                            <div class="stat-label">TypeScript</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">依賴問題</div>
+                        </div>
+                    </div>
+                    <div class="highlight" style="margin-top: 80px;">
+                        <h3>技術價值</h3>
+                        <p>展示現代前端開發能力 • 企業級應用架構設計<br>
+                        數據視覺化最佳實踐 • 可擴展的系統設計</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 15: Q&A -->
+            <div class="slide">
+                <div class="content" style="justify-content: center; align-items: center; text-align: center;">
+                    <h1 style="font-size: 120px; margin-bottom: 80px;">Q & A</h1>
+                    <p style="font-size: 48px; color: var(--text-secondary); margin-bottom: 60px;">
+                        感謝觀看！
+                    </p>
+                    <p style="font-size: 36px; color: var(--text-secondary);">
+                        有任何問題歡迎提問
+                    </p>
+                    <div style="margin-top: 120px; font-size: 32px; color: var(--accent-blue);">
+                        專案位置：D:\IBM demo\NeoFactory\smart-factory<br>
+                        線上展示：http://localhost:5174
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Navigation Controls -->
+    <div class="deck-controls">
+        <button onclick="prevSlide()">← 上一頁</button>
+        <span id="slideCounter" style="color: white; padding: 0 16px;">1 / 15</span>
+        <button onclick="nextSlide()">下一頁 →</button>
+    </div>
+    
+    <script>
+        // === DECK STAGE SCALING ===
+        function fitStage() {
+            const stage = document.getElementById('stage');
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const scale = Math.min(vw / 1920, vh / 1080);
+            const offsetX = (vw - 1920 * scale) / 2;
+            const offsetY = (vh - 1080 * scale) / 2;
+            stage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+        
+        window.addEventListener('resize', fitStage);
+        window.addEventListener('load', fitStage);
+        fitStage();
+        
+        // === SLIDE NAVIGATION ===
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'visible');
+                if (i === index) {
+                    slide.classList.add('active', 'visible');
+                }
+            });
+            currentSlide = index;
+            updateCounter();
+        }
+        
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+        
+        function prevSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+        
+        function updateCounter() {
+            document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides - 1);
+            }
+        });
+        
+        // Touch/swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) nextSlide();
+            if (touchEndX > touchStartX + 50) prevSlide();
+        }
+        
+        // Initialize
+        updateCounter();
+    </script>
+</body>
+</html>
